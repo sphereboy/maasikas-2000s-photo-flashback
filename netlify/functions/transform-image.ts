@@ -83,20 +83,25 @@ const handler: Handler = async (event) => {
                 responseModalities: [Modality.IMAGE, Modality.TEXT],
             },
         });
+        
+        const candidate = response.candidates?.[0];
 
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData) {
-                return {
-                    statusCode: 200,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ transformedBase64: part.inlineData.data }),
-                };
+        if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
+            for (const part of candidate.content.parts) {
+                if (part.inlineData && part.inlineData.data) {
+                    return {
+                        statusCode: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ transformedBase64: part.inlineData.data }),
+                    };
+                }
             }
         }
-
+        
+        console.error("AI response did not contain an image.", JSON.stringify(response, null, 2));
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: "The AI model did not return an image. Please try a different photo." }),
+            body: JSON.stringify({ error: "The AI model did not return an image. This could be due to the content of the image or internal safety filters. Please try a different photo." }),
         };
 
     } catch (error) {
